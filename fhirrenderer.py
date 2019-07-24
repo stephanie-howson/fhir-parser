@@ -79,6 +79,16 @@ class FHIRStructureDefinitionRenderer(FHIRRenderer):
                 tgt = os.path.join(target_dir, os.path.basename(filepath))
                 logger.info("Copying manual profiles in {} to {}".format(os.path.basename(filepath), tgt))
                 shutil.copyfile(filepath, tgt)
+
+    @staticmethod
+    def set_forwards(imports, classes) -> None:
+        import_names = [i.name for i in imports]
+        seen = []
+        for c in classes[::-1]:
+            for p in c.properties:
+                p.is_forward = not p.is_native and p.enum is None and p.class_name not in import_names \
+                               and p.class_name not in seen
+            seen.append(c.name)
     
     def render(self):
         for profile in self.spec.writable_profiles():
@@ -89,6 +99,7 @@ class FHIRStructureDefinitionRenderer(FHIRRenderer):
                 continue
             
             imports = profile.needed_external_classes()
+            self.set_forwards(imports, classes)
             data = {
                 'profile': profile,
                 'info': self.spec.info,
@@ -100,7 +111,6 @@ class FHIRStructureDefinitionRenderer(FHIRRenderer):
             source_path = self.settings.tpl_resource_source
             target_name = self.settings.tpl_resource_target_ptrn.format(ptrn)
             target_path = os.path.join(self.settings.tpl_resource_target, target_name)
-            
             self.do_render(data, source_path, target_path)
         self.copy_files(os.path.dirname(target_path))
 
