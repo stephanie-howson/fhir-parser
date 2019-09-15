@@ -8,3 +8,6 @@ env
 
 # ignore downloads
 /downloads
+
+# pycharm
+.idea/
